@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+
+# Output folders
+output/
+merged/
+
+# OS
+Thumbs.db
+desktop.ini
