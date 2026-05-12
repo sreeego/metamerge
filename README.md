@@ -232,7 +232,9 @@ Output:     D:\MergedPhotos
 
 ## 📜 License
 
-MIT License © 2026 SREE GOVIND S A
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+
+See the [LICENSE](LICENSE) file for details.
 
 ---
 
