@@ -27,14 +27,6 @@ MetaMerge automatically detects these sidecar files, extracts the metadata, and 
 ### 🎥 Video Metadata Support
 
 * Restores metadata for video files
-* Supports:
-
-  * `.mp4`
-  * `.mov`
-  * `.mkv`
-  * `.avi`
-  * `.3gp`
-  * `.wmv`
 * Restores creation date and GPS metadata where available
 
 ### 📂 Recursive Folder Processing
@@ -62,21 +54,21 @@ MetaMerge automatically detects these sidecar files, extracts the metadata, and 
 
 ## 📑 Supported Formats
 
-| Format      | Extension        | Metadata Supported            |
-| ----------- | ---------------- | ----------------------------- |
-| JPEG        | `.jpg`, `.jpeg`  | EXIF (date, GPS, camera info) |
-| PNG         | `.png`           | EXIF (date, GPS)              |
-| WEBP        | `.webp`          | EXIF (date, GPS)              |
-| HEIC / HEIF | `.heic`, `.heif` | EXIF (date, GPS, camera info) |
-| TIFF        | `.tiff`          | EXIF (date, GPS)              |
-| BMP         | `.bmp`           | EXIF (date, GPS)              |
-| GIF         | `.gif`           | EXIF (date, GPS)              |
-| MP4         | `.mp4`           | Date, GPS                     |
-| MOV         | `.mov`           | Date, GPS                     |
-| MKV         | `.mkv`           | Date                          |
-| AVI         | `.avi`           | Date                          |
-| WMV         | `.wmv`           | Date                          |
-| 3GP         | `.3gp`           | Date, GPS                     |
+| Format      | Extension        | Metadata Supported                 |
+| ----------- | ---------------- | ---------------------------------- |
+| JPEG        | `.jpg`, `.jpeg`  | Date, GPS, camera info             |
+| PNG         | `.png`           | Date, GPS                          |
+| WEBP        | `.webp`          | Date, GPS                          |
+| HEIC / HEIF | `.heic`, `.heif` | Date, GPS, camera info             |
+| TIFF        | `.tiff`          | Date, GPS                          |
+| BMP         | `.bmp`           | Date, GPS                          |
+| GIF         | `.gif`           | Date, GPS                          |
+| MP4         | `.mp4`           | Date, GPS                          |
+| MOV         | `.mov`           | Date, GPS                          |
+| 3GP         | `.3gp`           | Date, GPS                          |
+| MKV         | `.mkv`           | Date only *(container limitation)* |
+| AVI         | `.avi`           | Date only *(container limitation)* |
+| WMV         | `.wmv`           | Date only *(container limitation)* |
 
 ---
 
@@ -94,7 +86,7 @@ Make sure `ffmpeg` is added to your system PATH.
 
 Install `pillow-heif` for HEIC/HEIF image support:
 
-```bash id="d5xgva"
+```bash id="vlcq7x"
 pip install pillow-heif
 ```
 
@@ -104,13 +96,13 @@ pip install pillow-heif
 
 ### Basic Command
 
-```bash id="grk2fi"
+```bash id="yq6lxf"
 python metamerge.py --input <takeout-folder> --output <output-folder>
 ```
 
 ### Example
 
-```bash id="s9qvxf"
+```bash id="2r2hpx"
 python metamerge.py ^
   --input "D:\Takeout\Google Photos" ^
   --output "D:\MergedPhotos"
@@ -131,7 +123,7 @@ python metamerge.py ^
 
 ### 1. Clone Repository
 
-```bash id="r0ywrn"
+```bash id="hjlwm8"
 git clone https://github.com/sreeego/metamerge.git
 
 cd metamerge
@@ -139,13 +131,13 @@ cd metamerge
 
 ### 2. Install Dependencies
 
-```bash id="ffkqmk"
+```bash id="cv7dqb"
 pip install -r requirements.txt
 ```
 
 ### 3. requirements.txt
 
-```txt id="l0x6rj"
+```txt id="0w0x0r"
 Pillow>=10.0.0
 piexif>=1.1.3
 pillow-heif>=0.16.0
@@ -153,7 +145,7 @@ pillow-heif>=0.16.0
 
 ### 4. Run MetaMerge
 
-```bash id="cjlwm7"
+```bash id="p1q5di"
 python metamerge.py --input "<takeout-folder>" --output "<output-folder>"
 ```
 
@@ -161,7 +153,7 @@ python metamerge.py --input "<takeout-folder>" --output "<output-folder>"
 
 ## 📂 Project Structure
 
-```text id="ehgqk7"
+```text id="tvwpk9"
 metamerge/
 ├── .gitignore
 ├── LICENSE
@@ -190,7 +182,7 @@ metamerge/
 
 ## 📄 Example Output
 
-```text id="r2w6eh"
+```text id="q5p7yh"
 ✅ IMG_1024.jpg
 
 ✅ IMG_1025.heic
