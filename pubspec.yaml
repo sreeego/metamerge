@@ -1,0 +1,32 @@
+name: g_metamerge
+
+description: G-MetaMerge
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  file_picker: ^8.1.2
+  path_provider: ^2.1.4
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/backend/g_metamerge.exe
+    - assets/ffmpeg/ffmpeg.exe
+    - assets/logo/logo.png
