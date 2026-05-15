@@ -72,25 +72,25 @@ def inspect_image(image_path: Path) -> dict:
     existing = {"datetime": False, "gps": False}
     try:
         img = Image.open(image_path)
-        exif = img.getexif()
+        raw_exif = img.info.get("exif", b"")
+        if not raw_exif:
+            return existing
 
-        if exif.get(0x9003) or exif.get(0x0132):
+        exif_dict = piexif.load(raw_exif)
+
+        if (exif_dict["Exif"].get(piexif.ExifIFD.DateTimeOriginal) or
+                exif_dict["0th"].get(piexif.ImageIFD.DateTime)):
             existing["datetime"] = True
 
-        gps_ifd = exif.get(0x8825)
-        if gps_ifd:
-            try:
-                gps_data = piexif.load(exif.tobytes()).get("GPS", {})
-                lat = gps_data.get(2)
-                lon = gps_data.get(4)
-                if lat and lon:
-                    def to_decimal(rational):
-                        d, m, s = rational
-                        return d[0]/d[1] + m[0]/m[1]/60 + s[0]/s[1]/3600
-                    if to_decimal(lat) != 0.0 or to_decimal(lon) != 0.0:
-                        existing["gps"] = True
-            except Exception:
-                pass
+        gps = exif_dict.get("GPS", {})
+        lat = gps.get(piexif.GPSIFD.GPSLatitude)
+        lon = gps.get(piexif.GPSIFD.GPSLongitude)
+        if lat and lon:
+            def to_decimal(rational):
+                d, m, s = rational
+                return d[0]/d[1] + m[0]/m[1]/60 + s[0]/s[1]/3600
+            if to_decimal(lat) != 0.0 or to_decimal(lon) != 0.0:
+                existing["gps"] = True
     except Exception:
         pass
     return existing
@@ -135,19 +135,24 @@ def format_log(wrote: list, skipped: list, no_data: list) -> str:
 
 def embed_exif(image_path: Path, meta: dict, output_path: Path):
     img = Image.open(image_path)
-    exif = img.getexif()
+    raw_exif = img.info.get("exif", b"")
+
+    try:
+        exif_dict = piexif.load(raw_exif)
+    except Exception:
+        exif_dict = {"0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "Interop": {}}
+
     existing = inspect_image(image_path)
     wrote = []
     skipped = []
     no_data = []
 
+    write_date = False
+    write_gps = False
+
     if "datetime" in meta:
         if not existing["datetime"]:
-            dt_str = meta["datetime"].strftime("%Y:%m:%d %H:%M:%S")
-            exif[0x0132] = dt_str
-            exif[0x9003] = dt_str
-            exif[0x9004] = dt_str
-            wrote.append("date")
+            write_date = True
         else:
             skipped.append("date")
     else:
@@ -155,26 +160,48 @@ def embed_exif(image_path: Path, meta: dict, output_path: Path):
 
     if "gps" in meta:
         if not existing["gps"]:
-            g = meta["gps"]
-            gps_ifd = {
-                1: "N" if g["lat"] >= 0 else "S",
-                2: to_rational_tuple(g["lat"]),
-                3: "E" if g["lon"] >= 0 else "W",
-                4: to_rational_tuple(g["lon"]),
-                5: 0,
-                6: (int(abs(g["alt"]) * 100), 100),
-            }
-            exif[0x8825] = piexif.dump({"GPS": gps_ifd})
-            wrote.append("gps")
+            write_gps = True
         else:
             skipped.append("gps")
     else:
         no_data.append("gps")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    img.save(output_path, exif=exif.tobytes(), quality=95)
 
-    # Always fix filesystem date
+    if not write_date and not write_gps:
+        # Nothing to write — copy as-is, only fix filesystem date
+        shutil.copy2(image_path, output_path)
+        if "datetime" in meta:
+            ts = meta["datetime"].timestamp()
+            os.utime(output_path, (ts, ts))
+        return wrote, skipped, no_data
+
+    if write_date:
+        dt_str = meta["datetime"].strftime("%Y:%m:%d %H:%M:%S").encode()
+        exif_dict["0th"][piexif.ImageIFD.DateTime] = dt_str
+        exif_dict["Exif"][piexif.ExifIFD.DateTimeOriginal] = dt_str
+        exif_dict["Exif"][piexif.ExifIFD.DateTimeDigitized] = dt_str
+        wrote.append("date")
+
+    if write_gps:
+        g = meta["gps"]
+        exif_dict["GPS"] = {
+            piexif.GPSIFD.GPSLatitudeRef: ("N" if g["lat"] >= 0 else "S").encode(),
+            piexif.GPSIFD.GPSLatitude: to_rational_tuple(g["lat"]),
+            piexif.GPSIFD.GPSLongitudeRef: ("E" if g["lon"] >= 0 else "W").encode(),
+            piexif.GPSIFD.GPSLongitude: to_rational_tuple(g["lon"]),
+            piexif.GPSIFD.GPSAltitudeRef: 0,
+            piexif.GPSIFD.GPSAltitude: (int(abs(g["alt"]) * 100), 100),
+        }
+        wrote.append("gps")
+
+    try:
+        exif_bytes = piexif.dump(exif_dict)
+    except Exception:
+        exif_bytes = raw_exif
+
+    img.save(output_path, exif=exif_bytes, quality=95)
+
     if "datetime" in meta:
         ts = meta["datetime"].timestamp()
         os.utime(output_path, (ts, ts))
@@ -248,7 +275,6 @@ def embed_video(video_path: Path, meta: dict, output_path: Path):
 
     shutil.move(str(temp_output), str(output_path))
 
-    # Always fix filesystem date
     if "datetime" in meta:
         ts = meta["datetime"].timestamp()
         os.utime(output_path, (ts, ts))
@@ -278,6 +304,10 @@ def run(input_dir: str, output_dir: str, inplace=False):
     ffmpeg_available = shutil.which(FFMPEG_BIN) is not None or Path(FFMPEG_BIN).exists()
     if not ffmpeg_available:
         print("⚠️ ffmpeg not found - video files will be skipped", flush=True)
+
+    ffprobe_available = shutil.which(FFPROBE_BIN) is not None or Path(FFPROBE_BIN).exists()
+    if not ffprobe_available:
+        print("⚠️ ffprobe not found - video inspection disabled", flush=True)
 
     files = [p for p in input_path.rglob("*") if p.suffix.lower() in SUPPORTED]
 
